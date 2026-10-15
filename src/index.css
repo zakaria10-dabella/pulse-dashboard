@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg: 244 243 250;
+    --surface: 255 255 255;
+    --raised: 238 236 248;
+    --line: 226 223 240;
+    --fg: 22 19 38;
+    --muted: 110 104 140;
+    --accent: 124 77 240;
+    --accent-soft: 237 232 255;
+    color-scheme: light;
+  }
+  .dark {
+    --bg: 10 9 17;
+    --surface: 20 18 31;
+    --raised: 29 26 46;
+    --line: 42 38 64;
+    --fg: 236 234 246;
+    --muted: 143 138 168;
+    --accent: 155 112 255;
+    --accent-soft: 40 31 74;
+    color-scheme: dark;
+  }
+  body { @apply bg-bg font-sans text-fg antialiased transition-colors duration-300; }
+  :focus-visible { @apply outline-none ring-2 ring-accent ring-offset-2 ring-offset-bg; }
+  ::selection { @apply bg-accent text-white; }
+}
+
+@layer components {
+  .card { @apply rounded-2xl border border-line bg-surface; }
+  .glass { @apply border border-white/10 bg-white/5 backdrop-blur-xl; }
+  .chip { @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium; }
+  .input { @apply w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm placeholder:text-muted focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent/15; }
+  .tnum { font-variant-numeric: tabular-nums; }
+}
+
+.scrollbar-none::-webkit-scrollbar { display: none; }
+.scrollbar-none { scrollbar-width: none; }
