@@ -1,8 +1,8 @@
-export function Avatar({ m, size = 36 }) {
+export function Avatar({ m, size = 28 }) {
   return (
     <span
-      className="grid shrink-0 place-items-center rounded-full font-display text-xs font-bold text-white"
-      style={{ width: size, height: size, background: `linear-gradient(135deg, hsl(${m.hue} 80% 62%), hsl(${m.hue + 40} 70% 45%))` }}
+      className="grid shrink-0 place-items-center rounded-full bg-raised font-medium text-muted ring-1 ring-line"
+      style={{ width: size, height: size, fontSize: size > 40 ? 15 : 11 }}
       aria-hidden="true"
     >
       {m.initials}
@@ -10,24 +10,29 @@ export function Avatar({ m, size = 36 }) {
   )
 }
 
-const statusStyle = {
-  Active: 'bg-lime/15 text-[#5E8A00] dark:text-lime',
-  Paused: 'bg-sky/15 text-[#1F86BF] dark:text-sky',
-  Overdue: 'bg-coral/15 text-coral',
-}
+const statusDot = { Active: 'bg-up', Paused: 'bg-faint', Overdue: 'bg-down' }
+const statusText = { Active: 'text-fg', Paused: 'text-muted', Overdue: 'text-down' }
 
 export function StatusBadge({ status }) {
   return (
-    <span className={`chip ${statusStyle[status]}`}>
-      <span className="h-1.5 w-1.5 rounded-full bg-current" />
+    <span className={`inline-flex h-6 items-center gap-1.5 whitespace-nowrap rounded-md border border-line px-2 text-xs font-medium ${statusText[status]}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${statusDot[status]}`} />
       {status}
     </span>
   )
 }
 
-const planStyle = { Basic: 'text-sky', Premium: 'text-accent', Elite: 'text-[#7FAF00] dark:text-lime' }
 export function PlanTag({ plan }) {
-  return <span className={`text-xs font-semibold ${planStyle[plan]}`}>{plan}</span>
+  return <span className="text-[13px] text-fg">{plan}</span>
+}
+
+export function Delta({ value, suffix = '%' }) {
+  const up = value >= 0
+  return (
+    <span className={`tnum inline-flex items-center text-xs font-medium ${up ? 'text-up' : 'text-down'}`}>
+      {up ? '+' : '−'}{Math.abs(value)}{suffix}
+    </span>
+  )
 }
 
 export function lastVisit(days) {
@@ -38,4 +43,16 @@ export function lastVisit(days) {
 
 export function formatDate(iso) {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+export function PageHeader({ title, meta, children }) {
+  return (
+    <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+      <div className="min-w-0">
+        <h1 className="text-xl font-semibold tracking-tight sm:text-[22px]">{title}</h1>
+        {meta && <p className="mt-1 text-[13px] text-muted">{meta}</p>}
+      </div>
+      {children && <div className="flex flex-wrap items-center gap-2">{children}</div>}
+    </div>
+  )
 }

@@ -1,13 +1,17 @@
 import { useEffect, useState } from 'react'
 
+function initial() {
+  try {
+    const saved = localStorage.getItem('pulse-theme')
+    if (saved) return saved
+  } catch {
+    /* storage unavailable */
+  }
+  return typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+}
+
 export function useTheme() {
-  const [theme, setTheme] = useState(() => {
-    try {
-      return localStorage.getItem('pulse-theme') || 'dark'
-    } catch {
-      return 'dark'
-    }
-  })
+  const [theme, setTheme] = useState(initial)
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark')
     try {

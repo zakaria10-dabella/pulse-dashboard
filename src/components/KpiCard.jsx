@@ -1,39 +1,33 @@
-import { motion } from 'framer-motion'
-import { ArrowDownRight, ArrowUpRight } from 'lucide-react'
 import CountUp from './CountUp'
+import { Delta } from './ui'
 
-function Spark({ data, up }) {
+function Spark({ data }) {
   const max = Math.max(...data)
   const min = Math.min(...data)
-  const pts = data.map((d, i) => [(i / (data.length - 1)) * 100, 30 - ((d - min) / (max - min || 1)) * 26 - 2])
-  const d = pts.map((p, i) => `${i ? 'L' : 'M'}${p[0]},${p[1]}`).join(' ')
-  const color = up ? '#C6F432' : '#FF6B6B'
+  const pts = data.map((d, i) => [(i / (data.length - 1)) * 100, 28 - ((d - min) / (max - min || 1)) * 24])
+  const d = pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ')
   return (
-    <svg viewBox="0 0 100 32" className="hidden h-10 w-20 shrink-0 sm:block" preserveAspectRatio="none" aria-hidden="true">
-      <motion.path d={d} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.4, delay: 0.4, ease: 'easeInOut' }} />
+    <svg viewBox="0 0 100 32" className="h-8 w-full" preserveAspectRatio="none" aria-hidden="true">
+      <path d={d} fill="none" stroke="rgb(var(--fg))" strokeOpacity=".35" strokeWidth="1.25" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+      <circle cx={pts.at(-1)[0]} cy={pts.at(-1)[1]} r="2" fill="rgb(var(--fg))" />
     </svg>
   )
 }
 
-export default function KpiCard({ kpi, index }) {
-  const up = kpi.delta >= 0
+const unit = { madk: 'MAD', mad: 'MAD' }
+
+export default function KpiCard({ kpi }) {
   return (
-    <motion.article
-      variants={{ hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } }}
-      whileHover={{ y: -4 }}
-      transition={{ type: 'spring', stiffness: 300, damping: 24 }}
-      className="card group relative overflow-hidden p-4 sm:p-5"
-    >
-      <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-accent/0 blur-2xl transition-colors duration-500 group-hover:bg-accent/25" />
-      <p className="text-xs text-muted sm:text-sm">{kpi.label}</p>
-      <div className="mt-3 flex items-end justify-between gap-2">
-        <CountUp value={kpi.value} format={kpi.format} duration={1.4 + index * 0.15} className="whitespace-nowrap font-display text-xl font-bold tracking-tight sm:text-2xl" />
-        <Spark data={kpi.spark} up={up} />
-      </div>
-      <p className={`mt-3 inline-flex items-center gap-1 text-xs font-semibold ${up ? 'text-[#7FAF00] dark:text-lime' : 'text-coral'}`}>
-        {up ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
-        {Math.abs(kpi.delta)}% <span className="hidden font-normal text-muted sm:inline">vs last month</span>
+    <article className="flex flex-col gap-3 bg-surface p-4 sm:p-5">
+      <p className="text-[13px] text-muted">{kpi.label}</p>
+      <p className="flex items-baseline gap-1.5">
+        <CountUp value={kpi.value} format={kpi.format} className="whitespace-nowrap text-[26px] font-semibold leading-none tracking-tight" />
+        {unit[kpi.format] && <span className="text-xs text-muted">{unit[kpi.format]}</span>}
       </p>
-    </motion.article>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs text-muted"><Delta value={kpi.delta} /> <span className="hidden sm:inline">vs Sep</span></p>
+        <div className="w-16 sm:w-20"><Spark data={kpi.spark} /></div>
+      </div>
+    </article>
   )
 }

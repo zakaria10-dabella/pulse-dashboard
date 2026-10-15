@@ -18,10 +18,13 @@ export const schedule = Object.fromEntries(
   ]),
 )
 
+export const dates = { Mon: 13, Tue: 14, Wed: 15, Thu: 16, Fri: 17, Sat: 18, Sun: 19 }
+
+// muted categorical hues, only ever used as small dots next to a text label
 export const typeColor = {
-  HIIT: '#FF6B6B',
-  Strength: '#9B70FF',
-  Mobility: '#5CC8FF',
-  Cardio: '#C6F432',
-  Combat: '#FFB547',
+  HIIT: '#D9480F',
+  Strength: '#3B5BDB',
+  Mobility: '#0C8599',
+  Cardio: '#2B8A3E',
+  Combat: '#868E96',
 }

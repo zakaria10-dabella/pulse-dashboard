@@ -1,25 +1,23 @@
 import { useMemo, useRef, useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { motion } from 'framer-motion'
 
-const W = 640
-const H = 240
-const P = { t: 16, r: 12, b: 28, l: 40 }
+const W = 720
+const H = 260
+const P = { t: 12, r: 8, b: 26, l: 44 }
 
 function smooth(points) {
-  // Catmull-Rom to cubic Bézier for a soft, hand-drawn curve
   return points.reduce((acc, p, i, a) => {
     if (i === 0) return `M${p[0]},${p[1]}`
     const p0 = a[i - 2] || a[i - 1]
     const p1 = a[i - 1]
-    const p2 = p
     const p3 = a[i + 1] || p
-    const c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6]
-    const c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6]
-    return `${acc} C${c1[0]},${c1[1]} ${c2[0]},${c2[1]} ${p2[0]},${p2[1]}`
+    const c1 = [p1[0] + (p[0] - p0[0]) / 6, p1[1] + (p[1] - p0[1]) / 6]
+    const c2 = [p[0] - (p3[0] - p1[0]) / 6, p[1] - (p3[1] - p1[1]) / 6]
+    return `${acc} C${c1[0]},${c1[1]} ${c2[0]},${c2[1]} ${p[0]},${p[1]}`
   }, '')
 }
 
-export default function AreaChart({ data }) {
+export default function AreaChart({ data, label }) {
   const [hover, setHover] = useState(null)
   const svgRef = useRef(null)
   const { pts, line, area, ticks, x } = useMemo(() => {
@@ -34,63 +32,71 @@ export default function AreaChart({ data }) {
     return { pts, line, area, ticks, x }
   }, [data])
 
-  const onMove = (e) => {
+  const pick = (clientX) => {
     const r = svgRef.current.getBoundingClientRect()
-    const px = ((e.clientX - r.left) / r.width) * W
+    const px = ((clientX - r.left) / r.width) * W
     let best = 0
     pts.forEach((p, i) => { if (Math.abs(p[0] - px) < Math.abs(pts[best][0] - px)) best = i })
     setHover(best)
   }
 
+  const onKey = (e) => {
+    if (e.key === 'ArrowRight') setHover((h) => Math.min(data.length - 1, (h ?? -1) + 1))
+    if (e.key === 'ArrowLeft') setHover((h) => Math.max(0, (h ?? data.length) - 1))
+    if (e.key === 'Escape') setHover(null)
+  }
+
+  const active = hover ?? data.length - 1
+  const prev = data[active - 1]
+  const change = prev ? ((data[active].v - prev.v) / prev.v) * 100 : null
+
   return (
-    <div className="relative">
-      <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} className="h-auto w-full touch-none" onPointerMove={onMove} onPointerLeave={() => setHover(null)} role="img" aria-label="Monthly revenue, thousands of MAD">
-        <defs>
-          <linearGradient id="area-fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="rgb(var(--accent))" stopOpacity=".45" />
-            <stop offset="1" stopColor="rgb(var(--accent))" stopOpacity="0" />
-          </linearGradient>
-          <linearGradient id="area-stroke" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0" stopColor="#5CC8FF" />
-            <stop offset=".6" stopColor="rgb(var(--accent))" />
-            <stop offset="1" stopColor="#C6F432" />
-          </linearGradient>
-        </defs>
-        {ticks.map((t) => (
-          <g key={t.v}>
-            <line x1={P.l} x2={W - P.r} y1={t.y} y2={t.y} stroke="rgb(var(--line))" strokeDasharray="3 5" />
-            <text x={P.l - 8} y={t.y + 4} textAnchor="end" className="fill-muted text-[11px]">{Math.round(t.v)}k</text>
-          </g>
-        ))}
-        {data.map((d, i) => (
-          <text key={d.m} x={x(i)} y={H - 8} textAnchor="middle" className={`text-[11px] ${hover === i ? 'fill-fg font-semibold' : 'fill-muted'}`}>{d.m}</text>
-        ))}
-        <motion.path key={`a-${data.length}`} d={area} fill="url(#area-fill)" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6, duration: 0.8 }} />
-        <motion.path key={`l-${data.length}`} d={line} fill="none" stroke="url(#area-stroke)" strokeWidth="3" strokeLinecap="round" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.4, ease: [0.65, 0, 0.35, 1] }} />
-        <AnimatePresence>
+    <div>
+      <div className="mb-4 flex items-baseline gap-3 px-4">
+        <p className="tnum text-2xl font-semibold tracking-tight">{(data[active].v * 1000).toLocaleString('en-US')} <span className="text-sm font-normal text-muted">MAD</span></p>
+        <p className="text-xs text-muted">
+          {data[active].m} {data[active].y}
+          {change !== null && <span className={`tnum ml-2 font-medium ${change >= 0 ? 'text-up' : 'text-down'}`}>{change >= 0 ? '+' : '−'}{Math.abs(change).toFixed(1)}% MoM</span>}
+        </p>
+      </div>
+      <div className="relative px-2">
+        <svg
+          ref={svgRef}
+          viewBox={`0 0 ${W} ${H}`}
+          className="h-auto w-full touch-pan-y outline-none"
+          onPointerMove={(e) => pick(e.clientX)}
+          onPointerLeave={() => setHover(null)}
+          onKeyDown={onKey}
+          tabIndex={0}
+          role="img"
+          aria-label={`${label}. Use left and right arrow keys to read each month.`}
+        >
+          <defs>
+            <linearGradient id="area-fill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="rgb(var(--accent))" stopOpacity=".14" />
+              <stop offset="1" stopColor="rgb(var(--accent))" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          {ticks.map((t, i) => (
+            <g key={t.v}>
+              <line x1={P.l} x2={W - P.r} y1={t.y} y2={t.y} stroke="rgb(var(--line))" strokeDasharray={i === 0 ? undefined : '2 4'} />
+              <text x={P.l - 10} y={t.y + 4} textAnchor="end" className="tnum fill-faint text-[11px]">{Math.round(t.v)}k</text>
+            </g>
+          ))}
+          {data.map((d, i) => (
+            <text key={d.m + d.y} x={x(i)} y={H - 6} textAnchor="middle" className={`text-[11px] ${hover === i ? 'fill-fg' : 'fill-faint'}`}>{d.m}</text>
+          ))}
+          <motion.path key={`a-${data.length}`} d={area} fill="url(#area-fill)" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3, duration: 0.5 }} />
+          <motion.path key={`l-${data.length}`} d={line} fill="none" stroke="rgb(var(--accent))" strokeWidth="1.75" strokeLinecap="round" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.9, ease: [0.4, 0, 0.2, 1] }} />
           {hover !== null && (
-            <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <motion.line animate={{ x1: pts[hover][0], x2: pts[hover][0] }} y1={P.t} y2={H - P.b} stroke="rgb(var(--accent))" strokeOpacity=".5" transition={{ type: 'spring', stiffness: 500, damping: 40 }} />
-              <motion.circle animate={{ cx: pts[hover][0], cy: pts[hover][1] }} r="6" fill="rgb(var(--surface))" stroke="rgb(var(--accent))" strokeWidth="3" transition={{ type: 'spring', stiffness: 500, damping: 40 }} />
-            </motion.g>
+            <g>
+              <line x1={pts[hover][0]} x2={pts[hover][0]} y1={P.t} y2={H - P.b} stroke="rgb(var(--fg))" strokeOpacity=".18" />
+              <circle cx={pts[hover][0]} cy={pts[hover][1]} r="4" fill="rgb(var(--surface))" stroke="rgb(var(--accent))" strokeWidth="2" />
+            </g>
           )}
-        </AnimatePresence>
-      </svg>
-      <AnimatePresence>
-        {hover !== null && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1, left: `${(pts[hover][0] / W) * 100}%`, top: `${(pts[hover][1] / H) * 100}%` }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            transition={{ type: 'spring', stiffness: 500, damping: 40 }}
-            style={{ x: '-50%', y: 'calc(-100% - 14px)' }}
-            className="pointer-events-none absolute rounded-xl border border-line bg-surface/95 px-3 py-2 text-xs shadow-xl backdrop-blur"
-          >
-            <p className="text-muted">{data[hover].m} 2025</p>
-            <p className="tnum font-display text-sm font-bold">{(data[hover].v * 1000).toLocaleString('en-US')} MAD</p>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          {hover === null && <circle cx={pts[pts.length - 1][0]} cy={pts[pts.length - 1][1]} r="3.5" fill="rgb(var(--accent))" />}
+        </svg>
+      </div>
     </div>
   )
 }

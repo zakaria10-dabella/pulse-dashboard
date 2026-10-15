@@ -1,95 +1,84 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { CalendarClock, Dumbbell, MapPin, MessageCircle, Target, X } from 'lucide-react'
-import { Avatar, formatDate, lastVisit, PlanTag, StatusBadge } from './ui'
+import { MessageCircle, X } from 'lucide-react'
+import { Avatar, formatDate, lastVisit, StatusBadge } from './ui'
 import { planPrice } from '../data/members'
 
 export default function MemberPanel({ m, onClose }) {
+  const closeRef = useRef(null)
   useEffect(() => {
+    const prev = document.activeElement
+    closeRef.current?.focus()
     const onKey = (e) => e.key === 'Escape' && onClose()
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      prev?.focus?.()
+    }
   }, [onClose])
 
   const max = Math.max(...m.weekly, 1)
+  const facts = [
+    ['Member ID', <span key="id" className="font-mono text-xs">{m.id}</span>],
+    ['Plan', `${m.plan} · ${planPrice[m.plan]} MAD/mo`],
+    ['Branch', m.branch],
+    ['Coach', m.coach],
+    ['Goal', m.goal],
+    ['Member since', formatDate(m.joined)],
+    ['Visits this month', m.visits],
+    ['Last visit', lastVisit(m.lastVisitDaysAgo)],
+  ]
   return (
     <>
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px]" />
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} onClick={onClose} className="fixed inset-0 z-40 bg-black/30" />
       <motion.aside
         role="dialog"
         aria-modal="true"
-        aria-label={`${m.name} details`}
-        initial={{ x: '100%' }}
-        animate={{ x: 0 }}
-        exit={{ x: '100%' }}
-        transition={{ type: 'spring', stiffness: 360, damping: 38 }}
-        className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col overflow-y-auto border-l border-line bg-surface"
+        aria-labelledby="member-title"
+        initial={{ x: 24, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        exit={{ x: 24, opacity: 0 }}
+        transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
+        className="fixed inset-y-0 right-0 z-50 flex w-full max-w-[420px] flex-col border-l border-line bg-surface shadow-pop"
       >
-        <div className="relative overflow-hidden p-6 pb-8">
-          <div className="absolute inset-0 bg-gradient-to-br from-accent/30 via-accent/5 to-transparent" />
-          <div className="relative flex items-start justify-between">
-            <Avatar m={m} size={64} />
-            <motion.button whileHover={{ rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={onClose} aria-label="Close panel" className="grid h-9 w-9 place-items-center rounded-full bg-raised">
-              <X size={16} />
-            </motion.button>
-          </div>
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="relative mt-4">
-            <h2 className="font-display text-2xl font-bold">{m.name}</h2>
-            <p className="mt-1 flex items-center gap-2 text-sm text-muted">{m.id} · <PlanTag plan={m.plan} /> · <StatusBadge status={m.status} /></p>
-          </motion.div>
+        <div className="flex h-14 shrink-0 items-center justify-between border-b border-line px-5">
+          <span className="text-xs text-muted">Members / <span className="text-fg">{m.name}</span></span>
+          <button ref={closeRef} onClick={onClose} aria-label="Close panel" className="icon-btn h-10 w-10"><X size={16} /></button>
         </div>
-        <motion.div
-          initial="hidden"
-          animate="show"
-          variants={{ hidden: {}, show: { transition: { staggerChildren: 0.06, delayChildren: 0.2 } } }}
-          className="flex flex-1 flex-col gap-4 px-6 pb-6"
-        >
-          <motion.dl variants={item} className="grid grid-cols-2 gap-3 text-sm">
-            {[
-              [MapPin, 'Branch', m.branch],
-              [Dumbbell, 'Coach', m.coach],
-              [CalendarClock, 'Member since', formatDate(m.joined)],
-              [Target, 'Goal', m.goal],
-            ].map(([Icon, k, v]) => (
-              <div key={k} className="rounded-xl bg-raised p-3">
-                <dt className="flex items-center gap-1.5 text-xs text-muted"><Icon size={12} />{k}</dt>
-                <dd className="mt-1 font-semibold">{v}</dd>
+        <div className="flex-1 overflow-y-auto">
+          <div className="flex items-center gap-4 px-5 py-5">
+            <Avatar m={m} size={48} />
+            <div className="min-w-0">
+              <h2 id="member-title" className="truncate text-lg font-semibold tracking-tight">{m.name}</h2>
+              <div className="mt-1"><StatusBadge status={m.status} /></div>
+            </div>
+          </div>
+          <dl className="border-y border-line px-5 py-2 text-[13px]">
+            {facts.map(([k, v]) => (
+              <div key={k} className="flex items-center justify-between gap-4 py-2">
+                <dt className="text-muted">{k}</dt>
+                <dd className="tnum text-right">{v}</dd>
               </div>
             ))}
-          </motion.dl>
-          <motion.section variants={item} className="rounded-xl border border-line p-4">
+          </dl>
+          <section className="px-5 py-5">
             <div className="flex items-baseline justify-between">
-              <h3 className="text-sm font-semibold">Check-ins, last 8 weeks</h3>
-              <span className="text-xs text-muted">Last visit: {lastVisit(m.lastVisitDaysAgo)}</span>
+              <h3 className="h-section">Check-ins, last 8 weeks</h3>
+              <span className="tnum text-xs text-muted">{m.weekly.reduce((a, b) => a + b, 0)} total</span>
             </div>
-            <div className="mt-4 flex h-24 items-end gap-2">
+            <div className="mt-4 flex h-24 items-end gap-1.5 border-b border-line">
               {m.weekly.map((w, i) => (
-                <motion.div key={i} initial={{ scaleY: 0 }} animate={{ scaleY: 1 }} transition={{ delay: 0.35 + i * 0.05, type: 'spring', stiffness: 140, damping: 16 }} style={{ height: `${Math.max(4, (w / max) * 100)}%`, originY: 1 }} className={`flex-1 rounded-md ${i === 7 ? 'bg-accent' : 'bg-accent/30'}`} title={`${w} visits`} />
+                <motion.div key={i} initial={{ scaleY: 0 }} animate={{ scaleY: 1 }} transition={{ delay: 0.1 + i * 0.03, duration: 0.35, ease: [0.4, 0, 0.2, 1] }} style={{ height: `${Math.max(3, (w / max) * 100)}%`, originY: 1 }} className={`flex-1 rounded-t-[3px] ${i === 7 ? 'bg-accent' : 'bg-fg/20'}`} title={`${w} visits`} />
               ))}
             </div>
-          </motion.section>
-          <motion.section variants={item} className="flex items-center justify-between rounded-xl border border-line p-4 text-sm">
-            <div>
-              <p className="text-muted">Monthly plan</p>
-              <p className="font-display text-lg font-bold">{planPrice[m.plan]} MAD</p>
-            </div>
-            <div className="text-right">
-              <p className="text-muted">Visits this month</p>
-              <p className="font-display text-lg font-bold">{m.visits}</p>
-            </div>
-          </motion.section>
-          <motion.div variants={item} className="mt-auto grid grid-cols-2 gap-3 pt-2">
-            <motion.button whileTap={{ scale: 0.96 }} className="flex items-center justify-center gap-2 rounded-xl border border-line py-3 text-sm font-semibold hover:bg-raised">
-              <MessageCircle size={16} /> Message
-            </motion.button>
-            <motion.button whileTap={{ scale: 0.96 }} className="rounded-xl bg-accent py-3 text-sm font-semibold text-white shadow-glow hover:brightness-110">
-              {m.status === 'Overdue' ? 'Send reminder' : 'Book session'}
-            </motion.button>
-          </motion.div>
-        </motion.div>
+            <div className="mt-1.5 flex justify-between text-[10px] text-faint"><span>8 wk ago</span><span>This week</span></div>
+          </section>
+        </div>
+        <div className="grid shrink-0 grid-cols-2 gap-2 border-t border-line p-4">
+          <button className="btn-ghost h-10"><MessageCircle size={14} /> WhatsApp</button>
+          <button className="btn-primary h-10">{m.status === 'Overdue' ? 'Send payment reminder' : 'Book a session'}</button>
+        </div>
       </motion.aside>
     </>
   )
 }
-
-const item = { hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0 } }
